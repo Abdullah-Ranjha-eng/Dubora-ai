@@ -21,7 +21,7 @@ const api = axios.create({
   // that flag either, so the button just stays disabled forever with zero
   // feedback. 3 minutes is generous enough for caption generation on a
   // long video while still guaranteeing SOME eventual error instead of an
-  // infinite hang.
+  // infinite hang
   timeout: 180_000,
 });
 
