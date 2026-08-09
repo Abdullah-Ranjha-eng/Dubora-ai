@@ -1,0 +1,201 @@
+<template>
+  <div class="relative min-h-screen">
+    <ParticleCanvas />
+    <div class="fixed inset-0 pointer-events-none" style="z-index:1"
+      :class="theme.isDark ? 'bg-gradient-to-b from-gray-950/80 to-gray-950' : 'bg-gradient-to-b from-gray-50/80 to-gray-50'" />
+
+    <main class="relative pt-32 pb-24 px-6" style="z-index:2">
+      <div class="max-w-2xl mx-auto">
+
+        <!-- Page header -->
+        <div class="text-center mb-12">
+          <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-medium mb-6"
+            :class="theme.isDark ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' : 'bg-orange-50 border-orange-200 text-orange-600'">
+            🎙️ AI Dubbing Studio
+          </div>
+          <h1 class="text-4xl font-extrabold mb-3"
+            :class="theme.isDark ? 'text-white' : 'text-gray-900'">Upload Your Video</h1>
+
+          <div class="flex flex-wrap items-center justify-center gap-2 mt-5">
+            <span v-for="limit in uploadLimits" :key="limit"
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border"
+              :class="theme.isDark ? 'bg-white/5 border-white/10 text-gray-400' : 'bg-gray-100 border-gray-200 text-gray-600'">
+              {{ limit }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Upload card -->
+        <div class="border rounded-2xl p-8 space-y-5 mb-8"
+          :class="theme.isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200 shadow-sm'">
+
+          <div>
+            <label class="block text-sm font-medium mb-1.5"
+              :class="theme.isDark ? 'text-gray-300' : 'text-gray-700'">Video Title</label>
+            <input v-model="title" type="text" placeholder="e.g. My Lecture — Part 1" required
+              class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+              :class="theme.isDark
+                ? 'bg-gray-800 border border-gray-700 text-white placeholder-gray-500'
+                : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400'" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1.5"
+              :class="theme.isDark ? 'text-gray-300' : 'text-gray-700'">Video File</label>
+            <div @dragover.prevent @drop.prevent="onDrop"
+              class="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all duration-200"
+              :class="[
+                file ? (theme.isDark ? 'border-orange-500 bg-orange-500/5' : 'border-orange-400 bg-orange-50') : (theme.isDark ? 'border-gray-700 hover:border-orange-500 hover:bg-orange-500/5' : 'border-gray-300 hover:border-orange-400 hover:bg-orange-50/50'),
+              ]"
+              @click="fileInput.click()">
+              <div v-if="!file">
+                <div class="text-4xl mb-3">📁</div>
+                <p class="font-semibold mb-1" :class="theme.isDark ? 'text-gray-300' : 'text-gray-700'">Drag & drop or click to select</p>
+                <p class="text-sm text-gray-500">MP4, AVI, MOV, MKV — up to 2GB</p>
+              </div>
+              <div v-else class="flex items-center justify-center gap-3 min-w-0">
+                <span class="text-2xl shrink-0">🎬</span>
+                <div class="text-left min-w-0">
+                  <p class="font-semibold text-orange-400 text-sm truncate">{{ file.name }}</p>
+                  <p class="text-xs text-gray-500">{{ (file.size / 1024 / 1024).toFixed(1) }} MB</p>
+                </div>
+                <button @click.stop="file = null" class="ml-2 shrink-0 text-gray-500 hover:text-red-400 text-lg">✕</button>
+              </div>
+            </div>
+            <input ref="fileInput" type="file" accept="video/*" class="hidden" @change="onFileChange" />
+          </div>
+
+          <!-- Upload progress -->
+          <div v-if="store.loading" class="space-y-1.5">
+            <div class="flex justify-between text-xs text-gray-400">
+              <span>Uploading…</span>
+              <span class="font-semibold text-orange-400">{{ store.uploadProgress }}%</span>
+            </div>
+            <div class="w-full rounded-full h-2 overflow-hidden bg-gray-800">
+              <div class="h-full rounded-full bg-gradient-to-r from-orange-500 to-pink-500 transition-all duration-200"
+                :style="{ width: store.uploadProgress + '%' }"></div>
+            </div>
+          </div>
+
+          <p v-if="store.error" class="text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-xl px-4 py-3">
+            {{ store.error }}
+          </p>
+
+          <button @click="handleUpload" :disabled="!file || !title || store.loading"
+            class="w-full rounded-xl py-3 font-bold text-sm transition-all duration-200 disabled:opacity-40"
+            :class="theme.isDark
+              ? 'bg-gradient-to-r from-orange-600 to-pink-500 hover:from-orange-500 hover:to-pink-400 text-white shadow-lg shadow-orange-500/30'
+              : 'bg-gradient-to-r from-orange-600 to-pink-500 hover:from-orange-500 hover:to-pink-400 text-white shadow-md shadow-orange-500/20'">
+            {{ store.loading ? "Uploading…" : "Upload Video →" }}
+          </button>
+          <p class="text-xs text-center text-gray-500">
+            You'll be taken straight to the video page to generate captions and dub it.
+          </p>
+        </div>
+
+        <!-- What happens next -->
+        <div class="border rounded-2xl p-6 mb-8"
+          :class="theme.isDark ? 'bg-white/3 border-white/10' : 'bg-white border-gray-200 shadow-sm'">
+          <h3 class="font-bold mb-4 text-sm uppercase tracking-wider text-orange-400">What happens after upload</h3>
+          <div class="space-y-3">
+            <div v-for="(step, i) in nextSteps" :key="i" class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-full bg-gradient-to-br from-orange-600/40 to-pink-500/20 border border-orange-500/30 flex items-center justify-center text-xs font-bold text-orange-400 shrink-0 mt-0.5">
+                {{ i + 1 }}
+              </div>
+              <p class="text-sm leading-relaxed" :class="theme.isDark ? 'text-gray-400' : 'text-gray-600'">{{ step }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features strip -->
+      <div class="max-w-5xl mx-auto mt-16">
+        <h2 class="text-center text-3xl font-bold mb-3"
+          :class="theme.isDark ? 'text-white' : 'text-gray-900'">Everything after upload is free, too</h2>
+        <p class="text-center text-base mb-12" :class="theme.isDark ? 'text-gray-500' : 'text-gray-600'">
+          One upload unlocks the full DubVerse AI workflow.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div v-for="f in uploadFeatures" :key="f.title"
+            class="border rounded-2xl p-5 transition-colors"
+            :class="theme.isDark ? 'bg-white/5 border-white/10 hover:border-orange-500/30' : 'bg-white border-gray-200 hover:border-orange-300 shadow-sm'">
+            <div class="text-2xl mb-3">{{ f.icon }}</div>
+            <h4 class="font-bold text-sm mb-1" :class="theme.isDark ? 'text-white' : 'text-gray-900'">{{ f.title }}</h4>
+            <p class="text-xs leading-relaxed" :class="theme.isDark ? 'text-gray-500' : 'text-gray-600'">{{ f.desc }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supported formats -->
+      <div class="max-w-5xl mx-auto mt-16 border rounded-2xl p-8"
+        :class="theme.isDark ? 'bg-white/3 border-white/10' : 'bg-white border-gray-200 shadow-sm'">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div v-for="info in formatInfo" :key="info.title">
+            <h4 class="font-bold text-sm mb-3 text-orange-400">{{ info.title }}</h4>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="item in info.items" :key="item"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium border"
+                :class="theme.isDark ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-700'">
+                {{ item }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script setup>
+import { ref } from "vue";
+import { useVideoStore } from "../stores/video.js";
+import { useThemeStore } from "../stores/theme.js";
+import { useRouter } from "vue-router";
+import ParticleCanvas from "../components/ParticleCanvas.vue";
+
+const store = useVideoStore();
+const theme = useThemeStore();
+const router = useRouter();
+
+const uploadLimits = [
+  "Up to 2GB per video",
+  "AI voice per speaker",
+  "Translate to 12 languages",
+];
+
+const title = ref("");
+const file = ref(null);
+const fileInput = ref(null);
+
+const onFileChange = (e) => { file.value = e.target.files[0]; };
+const onDrop = (e) => { file.value = e.dataTransfer.files[0]; };
+
+// DubVerse's upload endpoint is synchronous (see backend/controllers/videoController.js) —
+// it blocks until the Cloudinary upload finishes, so store.loading covers the
+// whole thing and we navigate only once the record actually exists.
+const handleUpload = async () => {
+  if (!file.value || !title.value) return;
+  const video = await store.startUpload(file.value, title.value);
+  if (video) router.push(`/video/${video._id}`);
+};
+
+const nextSteps = [
+  "Your video is uploaded to Cloudinary and a record is created in the database.",
+  "You're redirected to the Video page where you click 'Generate Captions' to trigger AI transcription and speaker identification.",
+  "Edit any line, translate to 12 languages, then click 'AI Dub' to generate a distinct AI voice per speaker and mix it onto the video.",
+  "Download the final dubbed video once it's ready.",
+];
+
+const uploadFeatures = [
+  { icon: "✏️", title: "Inline Editor",       desc: "Fix any word or rephrase entire lines directly in the browser — no app needed." },
+  { icon: "🌍", title: "12-Language Translate", desc: "One click to translate all captions using LLaMA 3.3 70B — context-aware, not word-for-word." },
+  { icon: "🎭", title: "Per-Speaker AI Voices", desc: "Each character gets their own ElevenLabs voice, kept consistent for the whole video." },
+  { icon: "🎬", title: "Dubbed Video Output",   desc: "Original video, new audio — muxed together and ready to download or share." },
+];
+
+const formatInfo = [
+  { title: "Accepted Video Formats", items: ["MP4", "MOV", "AVI", "MKV", "WEBM"] },
+  { title: "Voice Pools", items: ["Male voices", "Female voices"] },
+  { title: "Output Languages", items: ["Arabic", "French", "Spanish", "German", "English", "Urdu", "Hindi", "Chinese", "Turkish", "Russian", "Italian", "Portuguese", "Japanese"] },
+];
+</script>

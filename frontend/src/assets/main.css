@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+  /* Scrollbar — Firefox: orange thumb, matches current theme track color */
+  scrollbar-color: #FF2D78 var(--scrollbar-track, #10131c);
+  scrollbar-width: thin;
+  /* Default (dark theme) track color; overridden by App.vue when the
+     theme store toggles to light — see the watcher in App.vue. */
+  --scrollbar-track: #f9fafb;
+}
+
+body {
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+@keyframes gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 4s ease infinite;
+}
+
+/* Scrollbar — orange thumb, track matches the current theme's page
+   background (dark or light) instead of the browser's default white.
+   --scrollbar-track is kept in sync with the theme store by App.vue. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-track-piece,
+::-webkit-scrollbar-corner {
+  background-color: var(--scrollbar-track, #10131c);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #FF7A1A, #FF2D78);
+  border-radius: 999px;
+  border: 2px solid var(--scrollbar-track, #10131c);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FF8F3D, #FF4D8F);
+  background-clip: padding-box;
+}
