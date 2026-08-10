@@ -13,7 +13,13 @@ function getGuestId() {
 }
 
 const api = axios.create({
-  baseURL: "/api/v1",
+  // "/api/v1" only works locally, via vite.config.js's dev-server proxy to
+  // http://localhost:5000. In production the frontend and backend are two
+  // separate Vercel deployments on different domains — there's no proxy,
+  // so a relative path would just hit the FRONTEND's own domain and 404.
+  // VITE_API_URL must be set in the frontend's Vercel project settings to
+  // the deployed backend's URL (e.g. https://dubverse-api.vercel.app/api/v1).
+  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
   withCredentials: true,
   // Without this, a hung backend call (see utils/whisper.js for why one
   // can hang) means the request promise never settles — which means

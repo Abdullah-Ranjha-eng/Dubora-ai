@@ -22,4 +22,18 @@ import dotenv from "dotenv";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "config/config.env") });
 
-await import("./app.js");
+const { default: app } = await import("./app.js");
+const { connectDatabase } = await import("./config/dbConnect.js");
+
+const PORT = process.env.PORT || 5000;
+
+connectDatabase()
+  .then(() => {
+    app.listen(PORT, () => console.log(`DubVerse API listening on port ${PORT}`));
+  })
+  .catch((err) => {
+    // Fail loudly and don't start accepting requests on a DB-less server —
+    // see the comment in config/dbConnect.js for why this matters.
+    console.error(`Failed to start: could not connect to MongoDB — ${err.message}`);
+    process.exit(1);
+  });

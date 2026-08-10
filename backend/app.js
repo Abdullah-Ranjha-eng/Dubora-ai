@@ -1,15 +1,7 @@
-import path from "path";
-import { fileURLToPath } from "url";
-
-// __dirname is unused directly here now, but kept for anything else in
-// this file that may need a path relative to this module later.
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { v2 as cloudinary } from "cloudinary";
-import { connectDatabase } from "./config/dbConnect.js";
 import errorMiddleware from "./middlewares/errors.js";
 
 import videoRoutes from "./routes/video.js";
@@ -44,17 +36,10 @@ app.use("/api/v1", dubRoutes);
 
 app.use(errorMiddleware);
 
-const PORT = process.env.PORT || 5000;
-
-connectDatabase()
-  .then(() => {
-    app.listen(PORT, () => console.log(`DubVerse API listening on port ${PORT}`));
-  })
-  .catch((err) => {
-    // Fail loudly and don't start accepting requests on a DB-less server —
-    // see the comment in config/dbConnect.js for why this matters.
-    console.error(`Failed to start: could not connect to MongoDB — ${err.message}`);
-    process.exit(1);
-  });
-
+// NOTE: no app.listen() here, and no connectDatabase() call — this module
+// only builds the Express app. server.js (local dev) and api/index.js
+// (Vercel) each own connecting to the DB and exposing this app their own
+// way, because "start an HTTP server" and "export a request handler for a
+// serverless platform" are fundamentally different operations that don't
+// belong bundled into the same self-executing module.
 export default app;

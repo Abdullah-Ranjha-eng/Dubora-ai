@@ -7,7 +7,17 @@
 // secure:true there would make login silently "succeed" (200 response)
 // while the browser drops the cookie, so every following request looks
 // logged-out. Base it on NODE_ENV instead so both cases work.
-const isProd = process.env.NODE_ENV === "PRODUCTION";
+//
+// IMPORTANT: this checks NODE_ENV !== "DEVELOPMENT", not === "PRODUCTION".
+// Vercel automatically sets NODE_ENV=production (lowercase) for deployed
+// functions and does not let you override it via dashboard env vars — a
+// strict equality check against "PRODUCTION" (uppercase) was ALWAYS false
+// there, meaning cookies silently used the insecure/lax dev settings in
+// the actual production deployment too. Matching dbConnect.js's pattern
+// (only "DEVELOPMENT" — set explicitly in config.env for local dev — opts
+// OUT of prod behavior) means anything else, including Vercel's lowercase
+// value, correctly gets treated as production.
+const isProd = process.env.NODE_ENV !== "DEVELOPMENT";
 
 export const AUTH_COOKIE_OPTIONS = {
   httpOnly: true,

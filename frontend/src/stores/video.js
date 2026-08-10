@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import axios from "axios";
 import api from "../api.js";
 
 export const useVideoStore = defineStore("video", {
@@ -61,20 +62,43 @@ export const useVideoStore = defineStore("video", {
       }
     },
 
-    // Uploads the file and creates the video record. The caller navigates
-    // to the video page once this resolves with the created video.
+    // Uploads directly to Cloudinary from the browser (not through our own
+    // API) — see backend/controllers/videoController.js getUploadSignature
+    // for why: Vercel serverless functions cap request bodies at ~4.5MB,
+    // so piping a real video file through the backend fails there even
+    // though it works fine on a local Express server with no such limit.
     async startUpload(file, title) {
       this.loading = true;
       this.error = "";
       this.uploadProgress = 0;
-      const formData = new FormData();
-      formData.append("video", file);
-      formData.append("title", title);
       try {
-        const { data } = await api.post("/videos", formData, {
-          onUploadProgress: (evt) => {
-            this.uploadProgress = Math.round((evt.loaded / evt.total) * 100);
-          },
+        const { data: sig } = await api.get("/videos/upload-signature");
+
+        const cloudForm = new FormData();
+        cloudForm.append("file", file);
+        cloudForm.append("api_key", sig.apiKey);
+        cloudForm.append("timestamp", sig.timestamp);
+        cloudForm.append("signature", sig.signature);
+        cloudForm.append("folder", sig.folder);
+
+        // A plain axios call (not the `api` instance) — this goes straight
+        // to Cloudinary's own API, not our backend, so it shouldn't carry
+        // our baseURL, guest-id header, or auth cookie.
+        const { data: cloudResult } = await axios.post(
+          `https://api.cloudinary.com/v1_1/${sig.cloudName}/video/upload`,
+          cloudForm,
+          {
+            onUploadProgress: (evt) => {
+              this.uploadProgress = Math.round((evt.loaded / evt.total) * 100);
+            },
+          }
+        );
+
+        const { data } = await api.post("/videos", {
+          public_id: cloudResult.public_id,
+          url: cloudResult.secure_url,
+          duration: cloudResult.duration, // Cloudinary returns this automatically for video uploads
+          title,
         });
         this.currentVideo = data.video;
         return data.video;
@@ -131,15 +155,40 @@ export const useVideoStore = defineStore("video", {
       }
     },
 
-    // Runs the full AI dub (see backend/utils/dubEngine.js) — this request
-    // blocks until it's done, same as DubVerse's original Editor.vue.
+    // Runs the full AI dub (see backend/utils/dubEngine.js). The backend
+    // only queues this and returns immediately (dubbing takes real
+    // minutes — see backend/models/dubJob.js for why it can't be a single
+    // blocking request), so this polls a status endpoint until it's done.
+    // Signature/behavior matches the old synchronous version on purpose —
+    // still resolves to the dubbed video (or null on failure), still
+    // updates `loading`/`currentVideo` — so nothing calling this needs to
+    // change.
     async dubVideo(videoId, language = null) {
       this.loading = true;
       this.error = "";
       try {
-        const { data } = await api.post(`/videos/${videoId}/dub`, { language });
-        if (this.currentVideo) this.currentVideo.dubbedVideo = data.dubbedVideo;
-        return data.dubbedVideo;
+        await api.post(`/videos/${videoId}/dub`, { language });
+
+        const POLL_INTERVAL_MS = 4000;
+        // No overall cap here on purpose — a long video's TTS+encode can
+        // genuinely take several minutes on the worker. The user can
+        // navigate away; refetching the video page re-polls from scratch.
+        while (true) {
+          await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+          const { data: status } = await api.get(`/videos/${videoId}/dub-status`, {
+            params: { language },
+          });
+
+          if (status.status === "done") {
+            if (this.currentVideo) this.currentVideo.dubbedVideo = status.dubbedVideo;
+            return status.dubbedVideo;
+          }
+          if (status.status === "failed") {
+            this.error = status.error || "Dubbing failed.";
+            return null;
+          }
+          // else "pending" / "processing" — keep polling
+        }
       } catch (e) {
         this.error = e.response?.data?.message || "Dubbing failed.";
         return null;

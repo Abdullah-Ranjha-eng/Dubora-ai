@@ -1,2 +1,9 @@
 # Dependencies
 node_modules/
+
+# Build output
+dist/
+
+# Local env overrides — .env.example stays committed as documentation
+.env
+.env.local

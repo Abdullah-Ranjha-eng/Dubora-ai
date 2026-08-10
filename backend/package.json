@@ -5,7 +5,9 @@
   "description": "AI video dubbing backend — transcription, speaker ID, translation, TTS dubbing",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "worker": "node worker/index.js",
+    "worker:dev": "nodemon worker/index.js"
   },
   "dependencies": {
     "axios": "^1.7.7",
@@ -21,6 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.1",
     "multer": "^1.4.5-lts.1",
+    "serverless-http": "^3.2.0",
     "uuid": "^11.0.3"
   },
   "devDependencies": {
