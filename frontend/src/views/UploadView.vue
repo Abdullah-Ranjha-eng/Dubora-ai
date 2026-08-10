@@ -113,7 +113,7 @@
         <h2 class="text-center text-3xl font-bold mb-3"
           :class="theme.isDark ? 'text-white' : 'text-gray-900'">Everything after upload is free, too</h2>
         <p class="text-center text-base mb-12" :class="theme.isDark ? 'text-gray-500' : 'text-gray-600'">
-          One upload unlocks the full DubVerse AI workflow.
+          One upload unlocks the full Dubora AI workflow.
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <div v-for="f in uploadFeatures" :key="f.title"
@@ -170,7 +170,7 @@ const fileInput = ref(null);
 const onFileChange = (e) => { file.value = e.target.files[0]; };
 const onDrop = (e) => { file.value = e.dataTransfer.files[0]; };
 
-// DubVerse's upload endpoint is synchronous (see backend/controllers/videoController.js) —
+// Dubora's upload endpoint is synchronous (see backend/controllers/videoController.js) —
 // it blocks until the Cloudinary upload finishes, so store.loading covers the
 // whole thing and we navigate only once the record actually exists.
 const handleUpload = async () => {

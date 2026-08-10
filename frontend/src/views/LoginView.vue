@@ -4,7 +4,7 @@
       <div class="text-center mb-8">
         <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center text-2xl mx-auto mb-4 shadow-lg shadow-orange-500/30">🎙️</div>
         <h2 class="text-3xl font-extrabold mb-1" :class="theme.isDark ? 'text-white' : 'text-gray-900'">Welcome back</h2>
-        <p class="text-sm" :class="theme.isDark ? 'text-gray-500' : 'text-gray-600'">Sign in to your DubVerse AI account</p>
+        <p class="text-sm" :class="theme.isDark ? 'text-gray-500' : 'text-gray-600'">Sign in to your Dubora AI account</p>
       </div>
 
       <div class="border rounded-2xl p-8"

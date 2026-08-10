@@ -81,7 +81,7 @@
   <path d="M151 131 L151 197 L201 164 Z" fill="url(#play)"/>
 </svg>
             <span class="font-extrabold text-lg" :class="theme.isDark ? 'text-white' : 'text-gray-900'">
-              Dub<span class="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">Verse AI</span>
+              Dub<span class="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">ora AI</span>
             </span>
           </RouterLink>
           <p class="text-sm leading-relaxed mb-5" :class="theme.isDark ? 'text-gray-400' : 'text-gray-600'">
@@ -148,7 +148,7 @@
       <div class="pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4"
         :class="theme.isDark ? 'border-white/10' : 'border-gray-200'">
         <p class="text-xs text-gray-500">
-          © {{ new Date().getFullYear() }} DubVerse AI. Open source under MIT License.
+          © {{ new Date().getFullYear() }} Dubora AI. Open source under MIT License.
         </p>
         <button @click="theme.toggle()"
           class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200"

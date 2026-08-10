@@ -103,12 +103,12 @@
       <section class="py-24 px-6"
         :class="theme.isDark ? 'bg-orange-950/20' : 'bg-orange-50/60'">
         <div class="max-w-6xl mx-auto">
-          <p class="text-center text-xs font-semibold text-pink-400 tracking-widest uppercase mb-4">Why DubVerse AI</p>
+          <p class="text-center text-xs font-semibold text-pink-400 tracking-widest uppercase mb-4">Why Dubora AI</p>
           <h2 class="text-center text-4xl font-bold mb-4"
             :class="theme.isDark ? 'text-white' : 'text-gray-900'">Everything you need, nothing you don't</h2>
           <p class="text-center text-base max-w-xl mx-auto mb-16"
             :class="theme.isDark ? 'text-gray-500' : 'text-gray-600'">
-            We built DubVerse AI to be the dubbing tool we always wished existed — fast, natural-sounding, and completely free.
+            We built Dubora AI to be the dubbing tool we always wished existed — fast, natural-sounding, and completely free.
           </p>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -214,7 +214,7 @@ const whyUs = [
   { icon: "🎭", title: "Per-Speaker Voices",  desc: "Distinct AI voices are assigned per character, not per line, so the same voice sticks with the same speaker throughout." },
   { icon: "✏️", title: "Inline Caption Editor", desc: "Fix any word, adjust timestamps, or rewrite entire lines — all in the browser, no downloads needed." },
   { icon: "🌐", title: "12-Language Translation", desc: "LLaMA 3.3 70B translates your captions context-aware, preserving meaning before dubbing." },
-  { icon: "💸", title: "Completely Free",     desc: "No subscriptions, no watermarks, no minute limits. DubVerse AI is open-source software." },
+  { icon: "💸", title: "Completely Free",     desc: "No subscriptions, no watermarks, no minute limits. Dubora AI is open-source software." },
 ];
 
 const useCases = [

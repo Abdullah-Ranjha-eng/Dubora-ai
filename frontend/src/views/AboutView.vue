@@ -17,7 +17,7 @@
         </div>
         <h1 class="text-5xl md:text-6xl font-extrabold leading-tight mb-6"
           :class="theme.isDark ? 'text-white' : 'text-gray-900'">
-          About <span class="bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">DubVerse AI</span>
+          About <span class="bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">Dubora AI</span>
         </h1>
         <p class="text-xl leading-relaxed" :class="theme.isDark ? 'text-gray-400' : 'text-gray-600'">
           A modern, AI-powered platform that makes video dubbing fast, natural-sounding, and accessible to everyone — students, creators, teachers, and businesses.
@@ -33,7 +33,7 @@
             Every time someone wants to reach a new audience — a lecture, a tutorial, a business presentation — they face the same problem: hiring voice actors and studios for dubbing is slow, expensive, and out of reach for most creators.
           </p>
           <p class="leading-relaxed" :class="theme.isDark ? 'text-gray-400' : 'text-gray-600'">
-            DubVerse AI changes that. We use Groq's blazing-fast Whisper model to transcribe speech, identify who's speaking, translate to 12 languages, and generate a distinct AI voice per character with ElevenLabs — all in one place, in minutes.
+            Dubora AI changes that. We use Groq's blazing-fast Whisper model to transcribe speech, identify who's speaking, translate to 12 languages, and generate a distinct AI voice per character with ElevenLabs — all in one place, in minutes.
           </p>
         </div>
         <div class="grid grid-cols-2 gap-4">
