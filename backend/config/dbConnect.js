@@ -1,4 +1,13 @@
+import dns from "dns";
 import mongoose from "mongoose";
+
+// Fixes "querySrv ECONNREFUSED" on some Windows/router/VPN DNS setups that
+// can't resolve mongodb+srv SRV records even though the connection string
+// itself is valid — Node falls back to the OS resolver by default, and on
+// some networks that resolver silently refuses this specific query type.
+// Pointing Node directly at public DNS sidesteps it entirely, regardless
+// of whatever the OS/router is doing.
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 // On Vercel, each request can be handled by a "warm" container that
 // already ran a previous request — module-level state (like this cached
@@ -14,16 +23,18 @@ let connectionPromise = null;
 export const connectDatabase = () => {
   if (connectionPromise) return connectionPromise;
 
-  const DB_URI = process.env.NODE_ENV === "DEVELOPMENT" ? process.env.DB_LOCAL_URI : process.env.DB_URI;
+  // Single connection string, same one locally and on Vercel — no more
+  // NODE_ENV-based switching between a local mongod and Atlas. That
+  // switch is what caused this project to connect to a nonexistent
+  // 127.0.0.1:27017 on Vercel earlier: NODE_ENV got copied into Vercel's
+  // env vars along with everything else in config.env, which silently
+  // flipped it back to "local" in production. One variable, one place to
+  // set it correctly, nothing for an env var import to accidentally break.
+  const DB_URI = process.env.DB_URI;
+  if (!DB_URI) {
+    return Promise.reject(new Error("DB_URI is not set. Add it to config/config.env locally, or to your Vercel project's Environment Variables."));
+  }
 
-  // Previously this swallowed the connection error and resolved `false`,
-  // and app.js started the HTTP server regardless of the result. That let
-  // the server come up "green" even with zero DB connectivity — every
-  // route touching Mongo (upload, get video, generate captions, etc.)
-  // would then hang for Mongoose's buffering timeout and fail with a
-  // generic 500, which from the frontend looks like a broken/stuck page
-  // rather than a clear "database unreachable" error. Now we let the
-  // rejection propagate so app.js can refuse to start instead.
   connectionPromise = mongoose.connect(DB_URI).then((con) => {
     console.log(`MongoDB connected: ${con.connection.host}`);
     return true;
