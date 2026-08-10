@@ -7,7 +7,21 @@ import mongoose from "mongoose";
 // some networks that resolver silently refuses this specific query type.
 // Pointing Node directly at public DNS sidesteps it entirely, regardless
 // of whatever the OS/router is doing.
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+//
+// IMPORTANT: only do this locally. On Vercel this rewrites DNS resolution
+// for the entire function process, and Vercel's sandboxed network doesn't
+// treat outbound UDP:53 to arbitrary third-party resolvers the same way a
+// normal machine does — lookups against 8.8.8.8/1.1.1.1 there can be slow
+// or stall outright. Mongoose keeps re-resolving all replica set members
+// in the background for topology awareness, so a single stalled lookup can
+// hang a request well past the initial mongoose.connect() success, which
+// is exactly the "connects fine, then the request still times out at 60s"
+// behavior seen in production. `VERCEL` is set automatically in every
+// Vercel function invocation, so this only applies the workaround locally,
+// where the original DNS problem actually occurs.
+if (!process.env.VERCEL) {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
 
 // On Vercel, each request can be handled by a "warm" container that
 // already ran a previous request — module-level state (like this cached
@@ -35,7 +49,14 @@ export const connectDatabase = () => {
     return Promise.reject(new Error("DB_URI is not set. Add it to config/config.env locally, or to your Vercel project's Environment Variables."));
   }
 
-  connectionPromise = mongoose.connect(DB_URI).then((con) => {
+  // serverSelectionTimeoutMS defaults to 30s, which combined with the
+  // downstream work in a request handler can eat most of Vercel's 60s
+  // maxDuration before anything useful even runs. 10s is plenty for a
+  // healthy cluster and means a real connectivity problem (bad URI, IP
+  // not allowlisted, cluster paused, etc.) surfaces as a fast, clear
+  // error — 503 from api/index.js — instead of a silent hang that only
+  // shows up as an opaque "Task timed out after 60 seconds" in the logs.
+  connectionPromise = mongoose.connect(DB_URI, { serverSelectionTimeoutMS: 10_000 }).then((con) => {
     console.log(`MongoDB connected: ${con.connection.host}`);
     return true;
   });
