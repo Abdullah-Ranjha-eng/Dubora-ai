@@ -17,6 +17,16 @@ const serverlessHandler = serverless(app);
 // was paying the cost (and hang risk) of a DB connection it never needed.
 const isPreflight = (req) => req.method === "OPTIONS";
 
+// A handful of paths a browser (or crawler) requests automatically and
+// that this API never serves meaningfully — none of them touch Mongo, so
+// none of them should pay for a DB connection attempt. This matters in
+// practice: opening this backend's bare Vercel URL directly makes the
+// browser auto-request /favicon.ico and /favicon.png, and both were
+// showing up as 504s in Vercel's logs purely because they were queued
+// behind the exact same DB-connect wait as a real API call.
+const skipsDatabase = (req) =>
+  ["/favicon.ico", "/favicon.png", "/robots.txt", "/"].includes(req.url.split("?")[0]);
+
 // Belt-and-suspenders on top of dbConnect.js's own serverSelectionTimeoutMS:
 // race the connect attempt against a hard local timeout so that even if
 // something downstream of mongoose.connect() itself stalls (a hung DNS
@@ -35,7 +45,7 @@ function withHardTimeout(promise, ms, label) {
 }
 
 export default async function handler(req, res) {
-  if (isPreflight(req)) {
+  if (isPreflight(req) || skipsDatabase(req)) {
     return serverlessHandler(req, res);
   }
 

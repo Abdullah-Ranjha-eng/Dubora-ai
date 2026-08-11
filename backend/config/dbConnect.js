@@ -56,7 +56,20 @@ export const connectDatabase = () => {
   // not allowlisted, cluster paused, etc.) surfaces as a fast, clear
   // error — 503 from api/index.js — instead of a silent hang that only
   // shows up as an opaque "Task timed out after 60 seconds" in the logs.
-  connectionPromise = mongoose.connect(DB_URI, { serverSelectionTimeoutMS: 10_000 }).then((con) => {
+  //
+  // connectTimeoutMS bounds the initial TCP/TLS handshake itself (a
+  // separate stage from server *selection*) — without it, a network-level
+  // stall here isn't guaranteed to respect serverSelectionTimeoutMS at
+  // all, which is the likely cause if 60s "Task timed out" errors are
+  // still showing up even with the timeouts below and the hard race in
+  // api/index.js: it means something upstream of both of those is hanging.
+  // family: 4 skips a possibly-slow/absent AAAA lookup before falling back
+  // to A — most MongoDB Atlas / Vercel setups are IPv4 anyway.
+  connectionPromise = mongoose.connect(DB_URI, {
+    serverSelectionTimeoutMS: 10_000,
+    connectTimeoutMS: 10_000,
+    family: 4,
+  }).then((con) => {
     console.log(`MongoDB connected: ${con.connection.host}`);
     return true;
   });
