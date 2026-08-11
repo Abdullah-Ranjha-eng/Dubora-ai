@@ -23,6 +23,7 @@ if (!process.env.VERCEL) {
   dns.setServers(["8.8.8.8", "1.1.1.1"]);
 }
 
+<<<<<<< HEAD
 // On Vercel, each request can be handled by a "warm" container that
 // already ran a previous request — module-level state (like this cached
 // promise) survives between those invocations. Without caching, every
@@ -70,6 +71,17 @@ export const connectDatabase = () => {
     connectTimeoutMS: 10_000,
     family: 4,
   }).then((con) => {
+=======
+  // Previously this swallowed the connection error and resolved `false`,
+  // and app.js started the HTTP server regardless of the result. That let
+  // the server come up "green" even with zero DB connectivity — every
+  // route touching Mongo (upload, get video, generate captions, etc.)
+  // would then hang for Mongoose's buffering timeout and fail with a
+  // generic 500, which from the frontend looks like a broken/stuck page
+  // rather than a clear "database unreachable" error. Now we let the
+  // rejection propagate so app.js can refuse to start instead
+  return mongoose.connect(DB_URI).then((con) => {
+>>>>>>> db4fbe1 (updated favicon issue)
     console.log(`MongoDB connected: ${con.connection.host}`);
     return true;
   });
