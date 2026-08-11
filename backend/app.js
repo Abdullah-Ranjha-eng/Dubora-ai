@@ -21,9 +21,19 @@ const app = express();
 // "token" auth cookie cross-origin — without it, the Set-Cookie from
 // login/register gets silently dropped no matter what cookie flags are set.
 // NOTE: origin can't be "*" once credentials is true (browsers reject
-// that combination outright), so this needs a real FRONTEND_URL set in
-// production — the localhost fallback below is dev-only.
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", credentials: true }));
+// that combination outright).
+//
+// Allowlist (not a single string) — same pattern as Transcripto AI's
+// app.js — so the deployed frontend AND localhost:5173 both work against
+// this backend at the same time, instead of needing FRONTEND_URL swapped
+// between environments. FRONTEND_URL can hold a comma-separated list if
+// there's more than one deployed frontend origin to allow.
+const allowedOrigins = [
+  "http://localhost:5173",
+  ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",").map((s) => s.trim()) : []),
+].filter(Boolean);
+
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 

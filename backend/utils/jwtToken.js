@@ -33,10 +33,15 @@ const sendToken = (user, statusCode, res) => {
 
   const safeUser = { _id: user._id, name: user.name, email: user.email };
 
+  // token is also returned in the JSON body (matching Transcripto AI's
+  // sendToken) — not used by the current frontend (it relies on the
+  // httpOnly cookie via withCredentials), but it's a ready-made fallback
+  // for a client that can't rely on cross-site cookies (Safari ITP, a
+  // future mobile client, etc.) without a backend change later.
   res
     .status(statusCode)
     .cookie("token", token, { ...AUTH_COOKIE_OPTIONS, expires })
-    .json({ success: true, user: safeUser });
+    .json({ success: true, token, user: safeUser });
 };
 
 export default sendToken;
