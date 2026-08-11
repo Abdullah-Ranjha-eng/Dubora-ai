@@ -9,58 +9,22 @@ import serverless from "serverless-http";
 import app from "../app.js";
 import { connectDatabase } from "../config/dbConnect.js";
 
-const serverlessHandler = serverless(app);
+// Kick off the DB connection as soon as this module loads (once per cold
+// start) instead of waiting for the first request to trigger it — same
+// idea as Transcripto AI's app.js calling connectDatabase() at module
+// load. app.js's own "/api/v1"-scoped middleware (see there) awaits this
+// same cached promise before letting any API route run; this line just
+// means that wait is usually already resolved by the time a real request
+// arrives, instead of starting cold on it.
+//
+// Previously the DB-wait (plus a hard 12s timeout and a manual per-path
+// skip-list for /favicon.ico etc.) lived HERE, wrapped around every
+// request before Express ever saw it — which is what made favicon
+// requests pay the same DB-connection cost as a real API call. That logic
+// now lives in app.js scoped to "/api/v1" instead, matching Transcripto
+// AI's structure: Express's own routing naturally 404s anything outside
+// that prefix (favicons, robots.txt, "/") with zero DB cost, so no
+// skip-list is needed here anymore.
+connectDatabase();
 
-// CORS preflight (OPTIONS) never touches the database or a route handler —
-// the `cors` middleware in app.js answers it directly. Waiting on
-// connectDatabase() first for these was pure wasted risk: every preflight
-// was paying the cost (and hang risk) of a DB connection it never needed.
-const isPreflight = (req) => req.method === "OPTIONS";
-
-// A handful of paths a browser (or crawler) requests automatically and
-// that this API never serves meaningfully — none of them touch Mongo, so
-// none of them should pay for a DB connection attempt. This matters in
-// practice: opening this backend's bare Vercel URL directly makes the
-// browser auto-request /favicon.ico and /favicon.png, and both were
-// showing up as 504s in Vercel's logs purely because they were queued
-// behind the exact same DB-connect wait as a real API call.
-const skipsDatabase = (req) =>
-  ["/favicon.ico", "/favicon.png", "/robots.txt", "/"].includes(req.url.split("?")[0]);
-
-// Belt-and-suspenders on top of dbConnect.js's own serverSelectionTimeoutMS:
-// race the connect attempt against a hard local timeout so that even if
-// something downstream of mongoose.connect() itself stalls (a hung DNS
-// lookup, a stuck socket, anything not covered by mongoose's own timeout
-// option), this function still fails fast with a clear 503 instead of
-// silently burning the entire 60s maxDuration with zero response — which
-// is the exact "Task timed out after 60 seconds" pattern seen in the logs.
-// Kept comfortably under maxDuration (60s in vercel.json) so there's
-// always time left to send this response.
-function withHardTimeout(promise, ms, label) {
-  let timer;
-  const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${label} took longer than ${ms}ms`)), ms);
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
-
-export default async function handler(req, res) {
-  if (isPreflight(req) || skipsDatabase(req)) {
-    return serverlessHandler(req, res);
-  }
-
-  // connectDatabase() caches its connection promise (see config/dbConnect.js)
-  // so this only actually opens a connection on a cold start — warm
-  // invocations resolve this instantly against the cached promise.
-  try {
-    await withHardTimeout(connectDatabase(), 12_000, "MongoDB connection");
-  } catch (err) {
-    console.error("Failed to connect to MongoDB:", err.message);
-    res.statusCode = 503;
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ success: false, message: "Database unavailable. Try again shortly." }));
-    return;
-  }
-
-  return serverlessHandler(req, res);
-}
+export default serverless(app);
